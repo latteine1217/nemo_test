@@ -55,6 +55,106 @@ python physicsnemo_train.py
 python physicsnemo_test.py
 ```
 
+## Cluster Deployment with SLURM
+
+### Available SLURM Scripts
+
+#### 1. Single Node Multi-GPU Training (`train_slurm.sh`)
+- **Use case**: Standard training on 1 node with 2 GPUs
+- **Resources**: 1 node, 2 GPUs, 48 CPU cores, 108GB RAM
+- **Estimated time**: Up to 14 days
+- **Command**: 
+```bash
+sbatch train_slurm.sh
+```
+
+#### 2. Multi-Node Training (`train_slurm_multinode.sh`)
+- **Use case**: Large-scale training across multiple nodes
+- **Resources**: 2 nodes, 4 GPUs total, 96 CPU cores, 216GB RAM
+- **Estimated time**: Up to 14 days
+- **Command**: 
+```bash
+sbatch train_slurm_multinode.sh
+```
+
+#### 3. Model Testing (`test_slurm.sh`)
+- **Use case**: Testing trained models
+- **Resources**: 1 node, 1 GPU, 12 CPU cores, 32GB RAM
+- **Estimated time**: 2 hours
+- **Command**: 
+```bash
+sbatch test_slurm.sh
+```
+
+### SLURM Resource Configuration
+
+| Parameter | Single Node | Multi-Node | Test |
+|-----------|-------------|------------|------|
+| `--nodes` | 1 | 2 | 1 |
+| `--ntasks` | 2 | 4 | 1 |
+| `--gres=gpu` | 2 | 2 per node | 1 |
+| `--mem` | 108G | 108G per node | 32G |
+| `--time` | 14-00:00:00 | 14-00:00:00 | 02:00:00 |
+
+### Environment Variables for SLURM
+```bash
+export OMP_NUM_THREADS=24          # CPU thread optimization
+export TORCH_NCCL_ASYNC_ERROR_HANDLING=1  # Error handling
+export NCCL_DEBUG=INFO             # NCCL debugging
+export CUDA_VISIBLE_DEVICES=0,1    # GPU visibility
+```
+
+### Job Management Commands
+```bash
+# Submit training job
+sbatch train_slurm.sh
+
+# Monitor job status
+squeue -u $USER
+sacct -j JOBID
+
+# Check job output
+tail -f job_JOBID.out
+tail -f job_JOBID.err
+
+# Cancel job
+scancel JOBID
+```
+
+### Customization Options
+
+#### Adjust GPU Count
+```bash
+#SBATCH --gres=gpu:4              # Use 4 GPUs
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+export WORLD_SIZE=4
+torchrun --nproc_per_node=4 ...
+```
+
+#### Memory Requirements
+```bash
+#SBATCH --mem=216G                # For larger datasets
+```
+
+#### Time Limits
+```bash
+#SBATCH --time=7-00:00:00         # 7 days
+#SBATCH --time=48:00:00           # 48 hours
+```
+
+### Troubleshooting SLURM Jobs
+
+**Common Issues:**
+1. **GPU allocation**: Ensure `--gres=gpu:N` matches available GPUs
+2. **Memory limits**: Monitor actual usage and adjust `--mem`
+3. **Time limits**: Set realistic time estimates to avoid job termination
+4. **Module loading**: Verify `ml load mpi` works on your system
+
+**Performance Optimization:**
+1. **CPU cores**: Match `--cpus-per-task` to your node configuration
+2. **Memory binding**: Consider NUMA topology for optimal performance
+3. **Network**: Enable InfiniBand (`NCCL_IB_DISABLE=0`) for multi-node
+
 ## Key Improvements
 
 ### 1. Performance Optimizations
